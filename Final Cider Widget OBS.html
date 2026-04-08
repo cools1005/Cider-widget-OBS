@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cider Widget</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --glass-white: rgba(255, 255, 255, 0.25);
+    --strong-border: rgba(255, 255, 255, 0.4);
+    --bg-image: none;
+    
+    /* Core Shadows */
+    --shadow-base: rgba(24, 24, 24, 0.5);
+    --shadow-light: rgba(24, 24, 24, 0.25);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: transparent; font-family: 'Outfit', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
+
+  .widget {
+    display: flex; align-items: center; gap: 20px; 
+    background: var(--glass-white);
+    backdrop-filter: blur(50px) saturate(150%);
+    border-radius: 1000px; 
+    border: 1px solid var(--strong-border);
+    padding: 14px 40px 14px 16px;
+    min-width: 500px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 24px 48px rgba(24, 24, 24, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  }
+
+  .color-engine-left {
+    position: absolute;
+    left: -100px; top: -60%; bottom: -60%;
+    width: 400px;
+    z-index: 1;
+    filter: blur(100px) saturate(2.5) brightness(1.4); 
+    opacity: 0.7; 
+    pointer-events: none;
+  }
+  .color-engine-left img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+  .art-wrap { 
+    width: 74px; height: 74px; border-radius: 18px; 
+    overflow: hidden; border: 2px solid rgba(255,255,255,0.4); 
+    z-index: 5; background: #000; flex-shrink: 0;
+    box-shadow: 0 8px 20px rgba(24, 24, 24, 0.6), 0 2px 6px rgba(24, 24, 24, 0.3);
+  }
+  .art-wrap img { width: 100%; height: 100%; object-fit: cover; }
+
+  .info { 
+    flex: 1; min-width: 0; z-index: 5; padding-left: 12px; 
+    filter: drop-shadow(0 4px 8px rgba(24, 24, 24, 0.6));
+  }
+  
+  .track { 
+    font-size: 21px; font-weight: 700; color: #f5f5f5; 
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+  }
+  
+  .artist { 
+    font-size: 16px; color: #d4d4d4; 
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; 
+  }
+
+  .visualizer { 
+    display: flex; align-items: center; gap: 8px; height: 45px; z-index: 10; 
+    filter: drop-shadow(0 4px 6px rgba(24, 24, 24, 0.4));
+  }
+  
+  .bar { 
+    width: 8px; border-radius: 20px; height: 8px; 
+    position: relative; overflow: hidden;
+    background: rgba(255,255,255,0.2); 
+    transition: height 0.1s cubic-bezier(0.17, 0.67, 0.3, 1);
+  }
+
+  .bar::after {
+    content: '';
+    position: absolute;
+    top: -50px; left: -100px; right: -100px; bottom: -50px;
+    background-image: var(--bg-image);
+    background-size: 300px 300px;
+    background-position: center;
+    filter: blur(12px) saturate(2.0) brightness(1.6);
+    opacity: 0.9;
+    z-index: -1;
+  }
+</style>
+</head>
+<body>
+
+<div class="widget">
+  <div class="color-engine-left"><img id="leftArt" src=""></div>
+  <div class="art-wrap"><img id="art" src=""></div>
+  <div class="info">
+    <div class="track" id="track">Waiting for Cider...</div>
+    <div class="artist" id="artist">Artist Info</div>
+  </div>
+  <div class="visualizer">
+    <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+  </div>
+</div>
+
+<script>
+  // Variables for tracking song state
+  var currentSong = "";
+  var currentArtist = "";
+  var artUrl = "";
+  var active = false;
+
+  // Let's grab the bars once instead of every frame
+  var visualizerBars = document.querySelectorAll('.bar');
+
+  async function getNowPlaying() {
+    try {
+      // Added a random string to prevent browser caching issues
+      var response = await fetch('http://127.0.0.1:10767/api/v1/playback/now-playing?tick=' + Date.now());
+      var data = await response.json();
+      
+      if (data && data.info) {
+        var info = data.info;
+
+        // Only update the DOM if the song actually changed
+        if (info.name !== currentSong) {
+          currentSong = info.name;
+          document.getElementById('track').innerText = info.name;
+          document.getElementById('artist').innerText = info.artistName;
+          
+          // Clean up the artwork URL
+          var rawArt = info.artwork ? info.artwork.url : "";
+          var cleanArt = rawArt.replace('{w}', '500').replace('{h}', '500');
+
+          if (cleanArt !== artUrl) {
+            artUrl = cleanArt;
+            var cacheBuster = cleanArt + "?rand=" + Math.random();
+            
+            document.getElementById('art').src = cacheBuster;
+            document.getElementById('leftArt').src = cacheBuster;
+            document.documentElement.style.setProperty('--bg-image', 'url(' + cacheBuster + ')');
+          }
+        }
+        active = true;
+      }
+    } catch (err) {
+      console.log("Cider isn't talking to us right now...");
+      active = false;
+    }
+  }
+
+  function doAnimation() {
+    visualizerBars.forEach(function(el) {
+      if (active) {
+        // Random heights for the bars
+        var newHeight = Math.floor(Math.random() * 30) + 10;
+        el.style.height = newHeight + "px";
+        el.style.opacity = "1";
+      } else {
+        // Fallback state
+        el.style.height = "8px";
+        el.style.opacity = "0.3";
+      }
+    });
+    
+    // Using requestAnimationFrame because it's smoother than setInterval
+    setTimeout(function() {
+      requestAnimationFrame(doAnimation);
+    }, 75); // 75ms seems like a good "human" speed
+  }
+
+  // Start the loops
+  setInterval(getNowPlaying, 1000); // Check for new song every second
+  doAnimation();
+  getNowPlaying();
+</script>
+</body>
+</html>

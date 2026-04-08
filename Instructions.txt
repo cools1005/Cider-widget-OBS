@@ -1,0 +1,28 @@
+Instructions
+
+Hello! 
+
+Here are the instructions below on how to install a widget that reads from cider what song your listening to
+
+It has an EQ bar that moves
+Shows what song is playing
+Shows a cover art for the song that's playing
+
+Sadly this requires cider 2+ which you can get from this link:
+ 
+https://taproom.cider.sh/purchase
+
+The widget itself is completely free on google drive and here is the steps to install it!
+
+Firstly go to cider and go onto the settings tab by pressing the 3 dots on the top left or right and open settings
+You should see a connectivity tab, Click it and turn on Web Sockets API and then press manage you then need to turn off require API tokens.
+
+Next go onto OBS then into the sources and add a browser, Rename it to whatever you like and then go onto properties and make it 1300 Wide by 200 high and scale to size (you can make it less wide but not recommended since it will get longer if a song has a super long name) 
+
+Then its time to find where the html file is saved and then on OBS studio tick the local file box press browse and go to wherever you saved the html file.
+
+(this works in any chromium environment)
+
+Now you are fully setup!
+
+Hope you enjoy the widget!
